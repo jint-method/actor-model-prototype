@@ -26,13 +26,35 @@
             text-align: center;
             line-height: 1.618;
         }
+
+        .button
+        {
+            background-color: deepskyblue;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 0 16px;
+            border-radius: 2px;
+            height: 36px;
+            line-height: 36px;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+        component-one,
+        component-two
+        {
+            display: block;
+        }
     </style>
 
     <script type="module" src="assets/bootstrap.js"></script>
 </head>
 <body>
-    <component-one>Component One</component-one>
-    <component-two>Component Two</component-two>
-    <component-two>Component Two</component-two>
+    <component-three class="button">Generate & Update</component-three>
+    <component-container style="height: 305px;overflow-y: scroll;text-align: center;width: 300px;">
+        <component-one>Component One</component-one>
+        <component-two>Component Two</component-two>
+    </component-container>
 </body>
 </html>

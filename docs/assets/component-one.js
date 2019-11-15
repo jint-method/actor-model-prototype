@@ -1,7 +1,12 @@
 import { broadcaster } from "./broadcaster.js";
 export class ComponentOne extends HTMLElement {
     inbox(data) {
-        console.log('Component one received a message:', data);
+        const { type } = data;
+        switch (type) {
+            case 'change-color':
+                this.updateColor();
+                break;
+        }
     }
     getRandomColor() {
         const letters = '0123456789ABCDEF';
@@ -11,18 +16,21 @@ export class ComponentOne extends HTMLElement {
         }
         return color;
     }
+    updateColor() {
+        const timestamp = performance.now();
+        const color = this.getRandomColor();
+        console.log(`Component one sent a message to component two.`);
+        this.style.color = color;
+        broadcaster.message('component-two', {
+            type: 'ping',
+            timestamp: timestamp,
+            color: color,
+        });
+    }
     connectedCallback() {
         broadcaster.hookup('component-one', this.inbox.bind(this));
         setTimeout(() => {
-            const timestamp = performance.now();
-            const color = this.getRandomColor();
-            console.log(`Component one sent a message to component two.`);
-            this.style.color = color;
-            broadcaster.message('component-two', {
-                type: 'ping',
-                timestamp: timestamp,
-                color: color,
-            });
+            this.updateColor();
         }, 3000);
     }
 }

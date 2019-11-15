@@ -2,7 +2,7 @@
 import { uuid } from './uuid.js';
 class Broadcaster {
     constructor() {
-        this.worker = new Worker(`${window.location.origin}/assets/worker.js`);
+        this.worker = new Worker(`${window.location.origin}${window.location.pathname}assets/worker.js`);
         this.worker.onmessage = this.inbox.bind(this);
         this.inboxes = [];
         this.messageQueue = [];
@@ -10,6 +10,9 @@ class Broadcaster {
             workerReady: false,
         };
     }
+    /**
+     * Set the broadcasters `workerReady` state to `true` and flush any queued messages.
+     */
     sendMessageQueue() {
         this.state.workerReady = true;
         if (this.messageQueue.length) {
@@ -19,6 +22,9 @@ class Broadcaster {
         }
         this.messageQueue = [];
     }
+    /**
+     * The broadcasters private inbox. Used to handle `postMessages` from the `Worker`.
+     */
     inbox(e) {
         const { type } = e.data;
         switch (type) {
@@ -30,8 +36,9 @@ class Broadcaster {
         }
     }
     /**
-     * Sends a message to an actor(s).
-     * @param message - an object containing the actors name and a data object
+     * Sends a message to an actor's inbox.
+     * @param actorName - the name of the actor(s) you want to send a message to
+     * @param data - the `MessageData` object that will be sent to the actor(s) inbox
      */
     message(actorName, data) {
         const workerMessage = {
@@ -47,7 +54,7 @@ class Broadcaster {
         }
     }
     /**
-     * Register and hookup the actors inbox.
+     * Register and hookup an actor's inbox.
      * @param name - the name of the actor
      * @param inbox - the function that will handle the actor's incoming messages
      */

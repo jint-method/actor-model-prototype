@@ -44,7 +44,7 @@ class BroadcastHelper {
      * Add the actor to the IDB database.
      * @param data - an `ActorHookupMessage` object
      */
-    addActor(data) {
+    async addActor(data) {
         const { name, inboxAddress } = data;
         const actorData = {
             name: name,
@@ -69,8 +69,7 @@ class BroadcastHelper {
                 console.warn(`Unknown message type: ${data.type}`);
         }
     }
-    lookup(message) {
-        console.log(message);
+    async lookup(message) {
     }
     /** Worker received a message from another thread */
     handleMessage(e) {

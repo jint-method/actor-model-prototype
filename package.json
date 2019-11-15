@@ -1,7 +1,7 @@
 {
   "name": "test",
   "version": "0.1.0",
-  "description": "Testing a variation of the Actor Model of web development.",
+  "description": "Testing a variation of the Actor Model for web development.",
   "author": "Kyle Andrews",
   "license": "MIT",
   "scripts": {

@@ -70,6 +70,29 @@ class BroadcastHelper {
         }
     }
     async lookup(message) {
+        const { actor, data } = message;
+        try {
+            const records = await new Promise((resolve, reject) => {
+                const request = this.idb.transaction('actors', 'readonly').objectStore('actors').index('name').getAll(actor);
+                request.onsuccess = (e) => { resolve(e.target.result); };
+                request.onerror = (e) => { reject(e); };
+            });
+            const inboxAddressIndexes = [];
+            if (records.length) {
+                for (let i = 0; i < records.length; i++) {
+                    inboxAddressIndexes.push(records[i].address);
+                }
+            }
+            // @ts-ignore
+            self.postMessage({
+                type: 'lookup',
+                data: data,
+                inboxIndexes: inboxAddressIndexes,
+            });
+        }
+        catch (error) {
+            console.error(error);
+        }
     }
     /** Worker received a message from another thread */
     handleMessage(e) {

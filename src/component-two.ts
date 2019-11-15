@@ -4,17 +4,16 @@ export class ComponentTwo extends HTMLElement
 {
     public inbox(data:MessageData) : void
     {
-        console.log('Component two received a message:', data);
         const { type } = data;
-        if (type === 'pint')
+        if (type === 'ping')
         {
-            console.log(data.timestamp);
-            performance.now();
+            console.log(`I was pinged! This is the timestamp: ${ data.timestamp } : ${ performance.now() }`);
+            this.style.color = data.color;
         }
     }
 
     connectedCallback()
     {
-        broadcaster.hookup('component-two', this.inbox);
+        broadcaster.hookup('component-two', this.inbox.bind(this));
     }
 }

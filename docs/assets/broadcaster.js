@@ -22,6 +22,11 @@ class Broadcaster {
         }
         this.messageQueue = [];
     }
+    sendDataToInboxes(inboxIndexes, data) {
+        for (let i = 0; i < inboxIndexes.length; i++) {
+            this.inboxes[inboxIndexes[i]].callback(data);
+        }
+    }
     /**
      * The broadcasters private inbox. Used to handle `postMessages` from the `Worker`.
      */
@@ -32,6 +37,7 @@ class Broadcaster {
                 this.sendMessageQueue();
                 break;
             default:
+                this.sendDataToInboxes(e.data.inboxIndexes, e.data.data);
                 break;
         }
     }

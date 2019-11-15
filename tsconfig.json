@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "outDir": "./docs/assets",
+        "target": "es2019",
+        "module": "esnext",
+        "lib": [
+            "dom",
+            "esnext",
+        ],
+        "allowJs": true,
+        "checkJs": false
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

@@ -17,7 +17,7 @@ class Broadcaster
 
     constructor()
     {
-        this.worker = new Worker(`${ window.location.origin }${ window.location.pathname }assets/worker.js`);
+        this.worker = new Worker(`${ window.location.origin }/assets/worker.js`);
         this.worker.onmessage = this.handleMessage.bind(this);
         this.inboxes = [];
         this.messageQueue = [];

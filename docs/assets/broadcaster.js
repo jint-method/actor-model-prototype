@@ -157,7 +157,7 @@ class Broadcaster {
         const wasLength = this.inboxes.length;
         this.inboxes = updatedInboxes;
         const nowLength = this.inboxes.length;
-        window.alert(`${wasLength} inboxes was purged down to ${nowLength}`);
+        window.alert(`${wasLength - nowLength} disconnected inboxes were removed. Only ${nowLength} remain.`);
         const workerMessage = {
             recipient: 'broadcast-worker',
             messageId: null,
@@ -208,7 +208,4 @@ class Broadcaster {
             .join("-");
     }
 }
-const broadcaster = new Broadcaster();
-export const hookup = broadcaster.hookup.bind(broadcaster);
-export const disconnect = broadcaster.disconnect.bind(broadcaster);
-export const message = broadcaster.message.bind(broadcaster);
+export const broadcaster = new Broadcaster();

@@ -1,4 +1,3 @@
-import { Actor } from './actor.js';
 export class GenerateButton extends HTMLElement
 {
     private container : HTMLElement;

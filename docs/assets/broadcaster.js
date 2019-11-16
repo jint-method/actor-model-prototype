@@ -45,6 +45,23 @@ class Broadcaster {
             this.sendDataToInboxes(data.inboxIndexes, data.data);
         }
     }
+    sendUserDeviceInformation() {
+        var _a, _b;
+        // @ts-ignore
+        const deviceMemory = (_b = (_a = window.navigator) === null || _a === void 0 ? void 0 : _a.deviceMemory, (_b !== null && _b !== void 0 ? _b : 8));
+        const isSafari = (navigator.userAgent.search("Safari") >= 0 && navigator.userAgent.search("Chrome") < 0);
+        const workerMessage = {
+            recipient: 'broadcast-worker',
+            messageId: null,
+            protocol: 'UDP',
+            data: {
+                type: 'init',
+                memory: deviceMemory,
+                isSafari: isSafari,
+            },
+        };
+        this.postMessageToWorker(workerMessage);
+    }
     /**
      * The broadcaster's personal inbox.
      */
@@ -53,9 +70,12 @@ class Broadcaster {
         switch (type) {
             case 'ready':
                 this.flushMessageQueue();
+                this.sendUserDeviceInformation();
                 break;
             case 'cleanup':
                 this.cleanup();
+                break;
+            case 'ping':
                 break;
             default:
                 console.warn(`Unknown broadcaster message type: ${data.type}`);

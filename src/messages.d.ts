@@ -31,3 +31,9 @@ interface InboxUpdateMessage extends MessageData
 {
     addresses: Array<{ oldAddressIndex:number, newAddressIndex:number }>,
 }
+
+interface UserDeviceInfoMessage extends MessageData
+{
+    memory: number,
+    isSafari: boolean
+}

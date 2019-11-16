@@ -70,9 +70,39 @@ class BroadcastHelper {
             case 'update-addresses':
                 this.updateAddressIndexes(data);
                 break;
+            case 'init':
+                this.handleUserDeviceInfo(data);
+                break;
             default:
                 console.warn(`Unknown broadcast-worker message type: ${data.type}`);
                 break;
+        }
+    }
+    handleUserDeviceInfo(data) {
+        const { memory, isSafari } = data;
+        if (memory <= 4) {
+            /** Tells broadcaster to cleanup disconnected inboxes every minute on low-end devices */
+            setInterval(() => {
+                // @ts-ignore
+                self.postMessage({
+                    recipient: 'broadcaster',
+                    data: {
+                        type: 'cleanup',
+                    }
+                });
+            }, 60000);
+        }
+        if (isSafari) {
+            /** Pings broadcaster every 3 seconds on Safari due to iOS auto-terminating active workers */
+            setInterval(() => {
+                // @ts-ignore
+                self.postMessage({
+                    recipient: 'broadcaster',
+                    data: {
+                        type: 'ping',
+                    }
+                });
+            }, 3000);
         }
     }
     /**

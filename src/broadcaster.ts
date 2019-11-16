@@ -27,7 +27,7 @@ class Broadcaster
     /**
      * Set the broadcasters `workerReady` state to `true` and flush any queued messages.
      */
-    private sendMessageQueue() : void
+    private flushMessageQueue() : void
     {
         this.state.workerReady = true;
         if (this.messageQueue.length)
@@ -49,7 +49,7 @@ class Broadcaster
     }
 
     /**
-     * The broadcasters private inbox. Used to handle `postMessages` from the `Worker`.
+     * The broadcaster's personal inbox. Used to handle `postMessages` from the `Worker`.
      */
     private inbox(e:MessageEvent) : void
     {
@@ -57,7 +57,7 @@ class Broadcaster
         switch (type)
         {
             case 'ready':
-                this.sendMessageQueue();
+                this.flushMessageQueue();
                 break;
             default:
                 this.sendDataToInboxes(e.data.inboxIndexes, e.data.data);
@@ -126,6 +126,11 @@ class Broadcaster
         }
     }
 
+    /**
+     * Quick and dirty unique ID generation.
+     * This method does not follow RFC 4122 and does not guarantee a universally unique ID.
+     * @see https://tools.ietf.org/html/rfc4122
+     */
     private generateUUID() : string
     {
         return new Array(4)

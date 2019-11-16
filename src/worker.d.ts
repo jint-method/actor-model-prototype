@@ -7,7 +7,7 @@ interface IDBEvent extends Event
     target: IDBEventTarget
 }
 
-type InboxIDBData = {
+type InboxData = {
     name: string,
     address: number,
     uid: string,

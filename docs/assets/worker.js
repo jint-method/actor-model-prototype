@@ -1,60 +1,29 @@
 /// <reference path="./worker.d.ts" />
 /// <reference path="./messages.d.ts" />
-const request = indexedDB.open('inboxes', 1);
-request.onsuccess = (e) => {
-    new BroadcastHelper(e.target.result);
-};
-request.onerror = (e) => {
-    console.error('Something went wrong with opening the database', event);
-};
-request.onupgradeneeded = (e) => {
-    const response = e.target;
-    const db = response.result;
-    /** Create inboxes object store in IDB */
-    const store = db.createObjectStore('inboxes', { autoIncrement: true });
-    store.createIndex('name', 'name', { unique: false });
-    store.createIndex('uid', 'uid', { unique: true });
-    store.createIndex('address', 'address', { unique: true });
-};
 class BroadcastHelper {
-    constructor(idb) {
+    constructor() {
         this.queueTimeout = 1000; // Milliseconds
-        this.idb = idb;
         self.onmessage = this.handleMessage.bind(this);
         this.queuedMessages = [];
         this.queueTimer = null;
-        this.init();
+        this.inboxes = [];
+        // @ts-ignore
+        self.postMessage({
+            type: 'ready',
+        });
     }
     /**
-     * Remove all stale inboxes from the inboxes object store.
-     */
-    init() {
-        const purgeRequest = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').clear();
-        purgeRequest.onsuccess = (e) => {
-            // @ts-ignore
-            self.postMessage({
-                type: 'ready',
-            });
-        };
-        purgeRequest.onerror = (e) => {
-            console.error('Failed to purge old inboxes store:', e);
-        };
-    }
-    /**
-     * Add the inbox to the IDB database.
+     * Add the inbox to the inboxes array.
      * @param data - an `InboxHookupMessage` object
      */
     async addInbox(data) {
         const { name, inboxAddress } = data;
         const inboxData = {
-            name: name,
+            name: name.trim().toLowerCase(),
             address: inboxAddress,
             uid: this.generateUUID(),
         };
-        const request = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').put(inboxData);
-        request.onerror = (e) => {
-            console.log(`Failed to add ${name} to IDBDatabase:`, e);
-        };
+        this.inboxes.push(inboxData);
     }
     /**
      * The personal inbox of the `broadcast-worker` inbox.
@@ -69,20 +38,27 @@ class BroadcastHelper {
                 console.warn(`Unknown message type: ${data.type}`);
         }
     }
+    /**
+     * Look up the recipient(s) within the IDBDatabase.
+     * If inbox addresses are found send the array of inbox indexes to the broadcasters inbox.
+     * If no recipient(s) are found check the message protocol.
+     * If `UDP` the message is dropped.
+     * If `TCP` the message is queued and will be reattempted at a late time.
+     * @param message - the `BroadcastWorkerMessage` object
+     */
     async lookup(message) {
         var _a, _b;
-        const { recipient, data, protocol } = message;
+        const { data, protocol } = message;
+        const recipient = message.recipient.trim().toLowerCase();
         try {
-            const records = await new Promise((resolve, reject) => {
-                const request = this.idb.transaction('inboxes', 'readonly').objectStore('inboxes').index('name').getAll(recipient);
-                request.onsuccess = (e) => { resolve(e.target.result); };
-                request.onerror = (e) => { reject(e); };
-            });
             const inboxAddressIndexes = [];
-            if (records.length) {
-                for (let i = 0; i < records.length; i++) {
-                    inboxAddressIndexes.push(records[i].address);
+            for (let i = 0; i < this.inboxes.length; i++) {
+                const inbox = this.inboxes[i];
+                if (inbox.name === recipient) {
+                    inboxAddressIndexes.push(inbox.address);
                 }
+            }
+            if (inboxAddressIndexes.length) {
                 // @ts-ignore
                 self.postMessage({
                     type: 'lookup',
@@ -101,7 +77,7 @@ class BroadcastHelper {
                     message.attempts = 1;
                     this.queuedMessages.push(message);
                     if (this.queueTimer === null) {
-                        this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+                        this.queueTimer = setTimeout(this.flushMessageQueue.bind(this), this.queueTimeout);
                     }
                 }
             }
@@ -110,17 +86,24 @@ class BroadcastHelper {
             console.error(error);
         }
     }
-    sendMessageQueue() {
+    /**
+     * Attempts to `lookup()` any `TCP` messages that previously failed.
+     */
+    flushMessageQueue() {
         for (let i = 0; i < this.queuedMessages.length; i++) {
             this.lookup(this.queuedMessages[i]);
         }
         if (this.queuedMessages.length) {
-            this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+            this.queueTimer = setTimeout(this.flushMessageQueue.bind(this), this.queueTimeout);
         }
         else {
             this.queueTimer = null;
         }
     }
+    /**
+     * Drops a queued message when the message has reached it's maximum number of attempts.
+     * @param messageId - the `uid` of the message that needs to be dropped.
+     */
     dropMessageFromQueue(messageId) {
         for (let i = 0; i < this.queuedMessages.length; i++) {
             if (this.queuedMessages[i].messageId === messageId) {
@@ -129,7 +112,10 @@ class BroadcastHelper {
             }
         }
     }
-    /** Worker received a message from another thread */
+    /**
+     * Worker received a message from another thread.
+     * This method is an alias of `self.onmessage`
+     * */
     handleMessage(e) {
         const { recipient, data } = e.data;
         switch (recipient) {
@@ -141,6 +127,11 @@ class BroadcastHelper {
                 break;
         }
     }
+    /**
+     * Quick and dirty unique ID generation.
+     * This method does not follow RFC 4122 and does not guarantee a universally unique ID.
+     * @see https://tools.ietf.org/html/rfc4122
+     */
     generateUUID() {
         return new Array(4)
             .fill(0)
@@ -148,3 +139,4 @@ class BroadcastHelper {
             .join("-");
     }
 }
+new BroadcastHelper();

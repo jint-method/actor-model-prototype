@@ -2,7 +2,7 @@ import { hookup, disconnect } from './broadcaster.js';
 
 export class Actor extends HTMLElement
 {
-    private inboxId : string;
+    public inboxId : string;
     private inboxName : string;
 
     constructor(inboxName:string)
@@ -12,8 +12,10 @@ export class Actor extends HTMLElement
     }
 
     public inbox(data:MessageData):void {}
+    public connected():void {}
+    public disconnected():void {}
 
-    connectedCallback()
+    private connectedCallback()
     {
         if (!this.inboxName)
         {
@@ -21,10 +23,12 @@ export class Actor extends HTMLElement
             this.inboxName = 'nil';
         }
         this.inboxId = hookup(this.inboxName, this.inbox.bind(this));
+        this.connected();
     }
 
-    disconnectedCallback()
+    private disconnectedCallback()
     {
         disconnect(this.inboxId);
+        this.disconnected();
     }
 }

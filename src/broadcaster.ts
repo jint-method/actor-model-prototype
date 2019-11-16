@@ -177,7 +177,10 @@ class Broadcaster
                 updatedAddresses.push(addressUpdate);
             }
         }
+        const wasLength = this.inboxes.length;
         this.inboxes = updatedInboxes;
+        const nowLength = this.inboxes.length;
+        window.alert(`${ wasLength } inboxes was purged down to ${ nowLength }`);
         const workerMessage:BroadcastWorkerMessage = {
             recipient: 'broadcast-worker',
             messageId: null,

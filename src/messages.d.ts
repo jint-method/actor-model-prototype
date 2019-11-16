@@ -1,5 +1,5 @@
 type Message = {
-    actor: string,
+    recipient: string,
     data: MessageData,
 }
 
@@ -11,8 +11,12 @@ type MessageData = {
 interface BroadcastWorkerMessage extends Message
 {
     messageId: string,
+    protocol: 'UDP'|'TCP',
+    maxAttempts?: number
 }
 
-type Inbox = {
-    callback: Function,
+interface InboxHookupMessage extends MessageData
+{
+    name: string,
+    inboxAddress: number,
 }

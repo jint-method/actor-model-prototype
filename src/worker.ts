@@ -1,10 +1,7 @@
 /// <reference path="./worker.d.ts" />
-/// <reference path="./broadcaster.d.ts" />
+/// <reference path="./messages.d.ts" />
 
-// @ts-ignore
-self.importScripts('./worker-uuid.js');
-
-const request = indexedDB.open('actors', 1);
+const request = indexedDB.open('inboxes', 1);
 request.onsuccess = (e:IDBEvent) => {
     new BroadcastHelper(e.target.result);
 }
@@ -15,12 +12,11 @@ request.onupgradeneeded = (e:Event) => {
     const response = e.target as IDBOpenDBRequest;
     const db = response.result;
     
-    /** Create actors object store in IDB */
-    const store = db.createObjectStore('actors', { autoIncrement: true });
+    /** Create inboxes object store in IDB */
+    const store = db.createObjectStore('inboxes', { autoIncrement: true });
     store.createIndex('name', 'name', { unique: false } );
     store.createIndex('uid', 'uid', { unique: true });
     store.createIndex('address', 'address', { unique: true});
-    store.createIndex('sessionId', 'sessionId', { unique: false });
 }
 
 class BroadcastHelper
@@ -35,11 +31,11 @@ class BroadcastHelper
     }
 
     /**
-     * Remove all stale actors from the actors object store.
+     * Remove all stale inboxes from the inboxes object store.
      */
     private init()
     {
-        const purgeRequest = this.idb.transaction('actors', 'readwrite').objectStore('actors').clear();
+        const purgeRequest = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').clear();
         purgeRequest.onsuccess = (e:IDBEvent) => {
             // @ts-ignore
             self.postMessage({
@@ -47,30 +43,30 @@ class BroadcastHelper
             });
         }
         purgeRequest.onerror = (e:IDBEvent) => {
-            console.error('Failed to purge old actor store:', e);
+            console.error('Failed to purge old inboxes store:', e);
         }
     }
 
     /**
-     * Add the actor to the IDB database.
-     * @param data - an `ActorHookupMessage` object
+     * Add the inbox to the IDB database.
+     * @param data - an `InboxHookupMessage` object
      */
-    private async addActor(data:ActorHookupMessage)
+    private async addinbox(data:InboxHookupMessage)
     {
         const { name, inboxAddress } = data;
-        const actorData:ActorIDBData = {
+        const inboxData:InboxIDBData = {
             name: name,
             address: inboxAddress,
-            uid: uuid(),
+            uid: this.generateUUID(),
         }
-        const request = this.idb.transaction('actors', 'readwrite').objectStore('actors').put(actorData);
+        const request = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').put(inboxData);
         request.onerror = (e:IDBEvent) => {
             console.log(`Failed to add ${ name } to IDBDatabase:`, e);
         };
     }
 
     /**
-     * The personal inbox of the `broadcast-worker` actor.
+     * The personal inbox of the `broadcast-worker` inbox.
      * @param data - the incoming `BroadcastWorkerMessage` data object
      */
     private inbox(data:MessageData)
@@ -78,7 +74,7 @@ class BroadcastHelper
         switch (data.type)
         {
             case 'hookup':
-                this.addActor(data as ActorHookupMessage);
+                this.addinbox(data as InboxHookupMessage);
                 break;
             default:
                 console.warn(`Unknown message type: ${ data.type }`);
@@ -87,11 +83,11 @@ class BroadcastHelper
 
     private async lookup(message:Message)
     {
-        const { actor, data } = message;
+        const { recipient, data } = message;
         try
         {
-            const records:Array<ActorIDBData> = await new Promise((resolve, reject) => {
-                const request = this.idb.transaction('actors', 'readonly').objectStore('actors').index('name').getAll(actor);
+            const records:Array<InboxIDBData> = await new Promise((resolve, reject) => {
+                const request = this.idb.transaction('inboxes', 'readonly').objectStore('inboxes').index('name').getAll(recipient);
                 request.onsuccess = (e:IDBEvent) => { resolve(e.target.result); };
                 request.onerror = (e:IDBEvent) => { reject(e); };
             });
@@ -119,8 +115,8 @@ class BroadcastHelper
     /** Worker received a message from another thread */
     private handleMessage(e:MessageEvent)
     {
-        const { actor, data } = e.data;
-        switch (actor)
+        const { recipient, data } = e.data;
+        switch (recipient)
         {
             case 'broadcast-worker':
                 this.inbox(data);
@@ -129,5 +125,13 @@ class BroadcastHelper
                 this.lookup(e.data);
                 break;
         }
+    }
+
+    private generateUUID() : string
+    {
+        return new Array(4)
+            .fill(0)
+            .map(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16))
+            .join("-");
     }
 }

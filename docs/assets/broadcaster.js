@@ -1,5 +1,4 @@
-/// <reference path="./broadcaster.d.ts" />
-import { uuid } from './uuid.js';
+/// <reference path="./messages.d.ts" />
 class Broadcaster {
     constructor() {
         this.worker = new Worker(`${window.location.origin}${window.location.pathname}assets/worker.js`);
@@ -42,16 +41,22 @@ class Broadcaster {
         }
     }
     /**
-     * Sends a message to an actor's inbox.
-     * @param actorName - the name of the actor(s) you want to send a message to
-     * @param data - the `MessageData` object that will be sent to the actor(s) inbox
+     * Sends a message to an inbox.
+     * @param recipient - the name of the inboxes you want to send a message to
+     * @param data - the `MessageData` object that will be sent to the inboxes
+     * @param protocol - `UDP` will attempt to send the message but will not guarantee it arrives, `TCP` will attempt to deliver the message until the `maxAttempts` have been exceeded
+     * @param maxAttempts - the maximum number of attempts before the `TCP` message is dropped
      */
-    message(actorName, data) {
+    message(recipient, data, protocol = 'UDP', maxAttempts = 100) {
         const workerMessage = {
-            actor: actorName,
+            recipient: recipient,
             data: data,
-            messageId: uuid()
+            messageId: this.generateUUID(),
+            protocol: protocol,
         };
+        if (protocol === 'TCP') {
+            workerMessage.maxAttempts = maxAttempts;
+        }
         if (this.state.workerReady) {
             this.worker.postMessage(workerMessage);
         }
@@ -60,9 +65,9 @@ class Broadcaster {
         }
     }
     /**
-     * Register and hookup an actor's inbox.
-     * @param name - the name of the actor
-     * @param inbox - the function that will handle the actor's incoming messages
+     * Register and hookup an inbox.
+     * @param name - the name of the inbox
+     * @param inbox - the function that will handle the inboxes incoming messages
      */
     hookup(name, inbox) {
         const newInbox = {
@@ -71,8 +76,9 @@ class Broadcaster {
         const address = this.inboxes.length;
         this.inboxes.push(newInbox);
         const workerMessage = {
-            actor: 'broadcast-worker',
+            recipient: 'broadcast-worker',
             messageId: null,
+            protocol: 'UDP',
             data: {
                 type: 'hookup',
                 name: name,
@@ -85,6 +91,12 @@ class Broadcaster {
         else {
             this.messageQueue.push(workerMessage);
         }
+    }
+    generateUUID() {
+        return new Array(4)
+            .fill(0)
+            .map(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16))
+            .join("-");
     }
 }
 export const broadcaster = new Broadcaster();

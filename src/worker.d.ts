@@ -7,13 +7,7 @@ interface IDBEvent extends Event
     target: IDBEventTarget
 }
 
-interface ActorHookupMessage extends MessageData
-{
-    name: string,
-    inboxAddress: number,
-}
-
-type ActorIDBData = {
+type InboxIDBData = {
     name: string,
     address: number,
     uid: string,

@@ -1,8 +1,6 @@
 /// <reference path="./worker.d.ts" />
-/// <reference path="./broadcaster.d.ts" />
-// @ts-ignore
-self.importScripts('./worker-uuid.js');
-const request = indexedDB.open('actors', 1);
+/// <reference path="./messages.d.ts" />
+const request = indexedDB.open('inboxes', 1);
 request.onsuccess = (e) => {
     new BroadcastHelper(e.target.result);
 };
@@ -12,12 +10,11 @@ request.onerror = (e) => {
 request.onupgradeneeded = (e) => {
     const response = e.target;
     const db = response.result;
-    /** Create actors object store in IDB */
-    const store = db.createObjectStore('actors', { autoIncrement: true });
+    /** Create inboxes object store in IDB */
+    const store = db.createObjectStore('inboxes', { autoIncrement: true });
     store.createIndex('name', 'name', { unique: false });
     store.createIndex('uid', 'uid', { unique: true });
     store.createIndex('address', 'address', { unique: true });
-    store.createIndex('sessionId', 'sessionId', { unique: false });
 };
 class BroadcastHelper {
     constructor(idb) {
@@ -26,10 +23,10 @@ class BroadcastHelper {
         this.init();
     }
     /**
-     * Remove all stale actors from the actors object store.
+     * Remove all stale inboxes from the inboxes object store.
      */
     init() {
-        const purgeRequest = this.idb.transaction('actors', 'readwrite').objectStore('actors').clear();
+        const purgeRequest = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').clear();
         purgeRequest.onsuccess = (e) => {
             // @ts-ignore
             self.postMessage({
@@ -37,43 +34,43 @@ class BroadcastHelper {
             });
         };
         purgeRequest.onerror = (e) => {
-            console.error('Failed to purge old actor store:', e);
+            console.error('Failed to purge old inboxes store:', e);
         };
     }
     /**
-     * Add the actor to the IDB database.
-     * @param data - an `ActorHookupMessage` object
+     * Add the inbox to the IDB database.
+     * @param data - an `InboxHookupMessage` object
      */
-    async addActor(data) {
+    async addinbox(data) {
         const { name, inboxAddress } = data;
-        const actorData = {
+        const inboxData = {
             name: name,
             address: inboxAddress,
-            uid: uuid(),
+            uid: this.generateUUID(),
         };
-        const request = this.idb.transaction('actors', 'readwrite').objectStore('actors').put(actorData);
+        const request = this.idb.transaction('inboxes', 'readwrite').objectStore('inboxes').put(inboxData);
         request.onerror = (e) => {
             console.log(`Failed to add ${name} to IDBDatabase:`, e);
         };
     }
     /**
-     * The personal inbox of the `broadcast-worker` actor.
+     * The personal inbox of the `broadcast-worker` inbox.
      * @param data - the incoming `BroadcastWorkerMessage` data object
      */
     inbox(data) {
         switch (data.type) {
             case 'hookup':
-                this.addActor(data);
+                this.addinbox(data);
                 break;
             default:
                 console.warn(`Unknown message type: ${data.type}`);
         }
     }
     async lookup(message) {
-        const { actor, data } = message;
+        const { recipient, data } = message;
         try {
             const records = await new Promise((resolve, reject) => {
-                const request = this.idb.transaction('actors', 'readonly').objectStore('actors').index('name').getAll(actor);
+                const request = this.idb.transaction('inboxes', 'readonly').objectStore('inboxes').index('name').getAll(recipient);
                 request.onsuccess = (e) => { resolve(e.target.result); };
                 request.onerror = (e) => { reject(e); };
             });
@@ -96,8 +93,8 @@ class BroadcastHelper {
     }
     /** Worker received a message from another thread */
     handleMessage(e) {
-        const { actor, data } = e.data;
-        switch (actor) {
+        const { recipient, data } = e.data;
+        switch (recipient) {
             case 'broadcast-worker':
                 this.inbox(data);
                 break;
@@ -105,5 +102,11 @@ class BroadcastHelper {
                 this.lookup(e.data);
                 break;
         }
+    }
+    generateUUID() {
+        return new Array(4)
+            .fill(0)
+            .map(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16))
+            .join("-");
     }
 }

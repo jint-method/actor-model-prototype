@@ -18,8 +18,11 @@ request.onupgradeneeded = (e) => {
 };
 class BroadcastHelper {
     constructor(idb) {
+        this.queueTimeout = 1000; // Milliseconds
         this.idb = idb;
         self.onmessage = this.handleMessage.bind(this);
+        this.queuedMessages = [];
+        this.queueTimer = null;
         this.init();
     }
     /**
@@ -41,7 +44,7 @@ class BroadcastHelper {
      * Add the inbox to the IDB database.
      * @param data - an `InboxHookupMessage` object
      */
-    async addinbox(data) {
+    async addInbox(data) {
         const { name, inboxAddress } = data;
         const inboxData = {
             name: name,
@@ -60,14 +63,15 @@ class BroadcastHelper {
     inbox(data) {
         switch (data.type) {
             case 'hookup':
-                this.addinbox(data);
+                this.addInbox(data);
                 break;
             default:
                 console.warn(`Unknown message type: ${data.type}`);
         }
     }
     async lookup(message) {
-        const { recipient, data } = message;
+        var _a, _b;
+        const { recipient, data, protocol } = message;
         try {
             const records = await new Promise((resolve, reject) => {
                 const request = this.idb.transaction('inboxes', 'readonly').objectStore('inboxes').index('name').getAll(recipient);
@@ -79,16 +83,50 @@ class BroadcastHelper {
                 for (let i = 0; i < records.length; i++) {
                     inboxAddressIndexes.push(records[i].address);
                 }
+                // @ts-ignore
+                self.postMessage({
+                    type: 'lookup',
+                    data: data,
+                    inboxIndexes: inboxAddressIndexes,
+                });
             }
-            // @ts-ignore
-            self.postMessage({
-                type: 'lookup',
-                data: data,
-                inboxIndexes: inboxAddressIndexes,
-            });
+            else if (protocol === 'TCP' && message.messageId !== null) {
+                if (((_a = message) === null || _a === void 0 ? void 0 : _a.attempts) < message.maxAttempts) {
+                    message.attempts += 1;
+                }
+                else if (((_b = message) === null || _b === void 0 ? void 0 : _b.attempts) === message.maxAttempts) {
+                    this.dropMessageFromQueue(message.messageId);
+                }
+                else {
+                    message.attempts = 1;
+                    this.queuedMessages.push(message);
+                    if (this.queueTimer === null) {
+                        this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+                    }
+                }
+            }
         }
         catch (error) {
             console.error(error);
+        }
+    }
+    sendMessageQueue() {
+        for (let i = 0; i < this.queuedMessages.length; i++) {
+            this.lookup(this.queuedMessages[i]);
+        }
+        if (this.queuedMessages.length) {
+            this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+        }
+        else {
+            this.queueTimer = null;
+        }
+    }
+    dropMessageFromQueue(messageId) {
+        for (let i = 0; i < this.queuedMessages.length; i++) {
+            if (this.queuedMessages[i].messageId === messageId) {
+                this.queuedMessages.splice(i, 1);
+                break;
+            }
         }
     }
     /** Worker received a message from another thread */

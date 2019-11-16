@@ -12,7 +12,8 @@ interface BroadcastWorkerMessage extends Message
 {
     messageId: string,
     protocol: 'UDP'|'TCP',
-    maxAttempts?: number
+    maxAttempts?: number,
+    attempts?: number,
 }
 
 interface InboxHookupMessage extends MessageData

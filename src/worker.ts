@@ -22,11 +22,16 @@ request.onupgradeneeded = (e:Event) => {
 class BroadcastHelper
 {
     private idb : IDBDatabase;
+    private queuedMessages : Array<BroadcastWorkerMessage>;
+    private queueTimer : any;
+    private queueTimeout: number = 1000; // Milliseconds
 
     constructor(idb:IDBDatabase)
     {
         this.idb = idb;
         self.onmessage = this.handleMessage.bind(this);
+        this.queuedMessages = [];
+        this.queueTimer = null;
         this.init();
     }
 
@@ -51,7 +56,7 @@ class BroadcastHelper
      * Add the inbox to the IDB database.
      * @param data - an `InboxHookupMessage` object
      */
-    private async addinbox(data:InboxHookupMessage)
+    private async addInbox(data:InboxHookupMessage)
     {
         const { name, inboxAddress } = data;
         const inboxData:InboxIDBData = {
@@ -74,16 +79,16 @@ class BroadcastHelper
         switch (data.type)
         {
             case 'hookup':
-                this.addinbox(data as InboxHookupMessage);
+                this.addInbox(data as InboxHookupMessage);
                 break;
             default:
                 console.warn(`Unknown message type: ${ data.type }`);
         }
     }
 
-    private async lookup(message:Message)
+    private async lookup(message:BroadcastWorkerMessage)
     {
-        const { recipient, data } = message;
+        const { recipient, data, protocol } = message;
         try
         {
             const records:Array<InboxIDBData> = await new Promise((resolve, reject) => {
@@ -98,17 +103,66 @@ class BroadcastHelper
                 {
                     inboxAddressIndexes.push(records[i].address);
                 }
+                // @ts-ignore
+                self.postMessage({
+                    type: 'lookup',
+                    data: data,
+                    inboxIndexes: inboxAddressIndexes,
+                });
             }
-            // @ts-ignore
-            self.postMessage({
-                type: 'lookup',
-                data: data,
-                inboxIndexes: inboxAddressIndexes,
-            });
+            else if (protocol === 'TCP' && message.messageId !== null)
+            {
+                if (message?.attempts < message.maxAttempts)
+                {
+                    message.attempts += 1;
+                }
+                else if (message?.attempts === message.maxAttempts)
+                {
+                    this.dropMessageFromQueue(message.messageId);
+                }
+                else
+                {
+                    message.attempts = 1;
+                    this.queuedMessages.push(message);
+                    if (this.queueTimer === null)
+                    {
+                        this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+                    }
+                }
+            }
         }
         catch (error)
         {
             console.error(error);
+        }
+    }
+
+    private sendMessageQueue() : void
+    {
+        for (let i = 0; i < this.queuedMessages.length; i++)
+        {
+            this.lookup(this.queuedMessages[i]);
+        }
+        
+        if (this.queuedMessages.length)
+        {
+            this.queueTimer = setTimeout(this.sendMessageQueue.bind(this), this.queueTimeout);
+        }
+        else
+        {
+            this.queueTimer = null;
+        }
+    }
+
+    private dropMessageFromQueue(messageId:string) : void
+    {
+        for (let i = 0; i < this.queuedMessages.length; i++)
+        {
+            if (this.queuedMessages[i].messageId === messageId)
+            {
+                this.queuedMessages.splice(i, 1);
+                break;
+            }
         }
     }
 

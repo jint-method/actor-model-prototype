@@ -9,14 +9,17 @@ class BroadcastHelper {
         this.inboxes = [];
         // @ts-ignore
         self.postMessage({
-            type: 'ready',
+            recipient: 'broadcaster',
+            data: {
+                type: 'ready',
+            }
         });
     }
     /**
      * Add the inbox to the inboxes array.
      * @param data - an `InboxHookupMessage` object
      */
-    async addInbox(data) {
+    addInbox(data) {
         const { name, inboxAddress } = data;
         const inboxData = {
             name: name.trim().toLowerCase(),
@@ -24,6 +27,15 @@ class BroadcastHelper {
             uid: this.generateUUID(),
         };
         this.inboxes.push(inboxData);
+    }
+    removeInbox(data) {
+        const { inboxAddress } = data;
+        for (let i = 0; i < this.inboxes.length; i++) {
+            if (this.inboxes[i].address === inboxAddress) {
+                this.inboxes.splice(i, 1);
+                break;
+            }
+        }
     }
     /**
      * The personal inbox of the `broadcast-worker` inbox.
@@ -34,8 +46,12 @@ class BroadcastHelper {
             case 'hookup':
                 this.addInbox(data);
                 break;
+            case 'disconnect':
+                this.removeInbox(data);
+                break;
             default:
-                console.warn(`Unknown message type: ${data.type}`);
+                console.warn(`Unknown broadcast-worker message type: ${data.type}`);
+                break;
         }
     }
     /**
@@ -121,6 +137,10 @@ class BroadcastHelper {
         switch (recipient) {
             case 'broadcast-worker':
                 this.inbox(data);
+                break;
+            case 'broadcaster':
+                // @ts-ignore
+                self.postMessage(e.data);
                 break;
             default:
                 this.lookup(e.data);

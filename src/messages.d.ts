@@ -21,3 +21,8 @@ interface InboxHookupMessage extends MessageData
     name: string,
     inboxAddress: number,
 }
+
+interface InboxDisconnectMessage extends MessageData
+{
+    inboxAddress: number,
+}

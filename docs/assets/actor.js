@@ -9,7 +9,7 @@ export class Actor extends HTMLElement {
     disconnected() { }
     connectedCallback() {
         if (!this.inboxName) {
-            console.error(`An actor is missing it's inbox name. Did you forget to call the classes constructor?`);
+            console.warn(`This actor is missing an inbox name. Did you forget to call the classes constructor?`);
             this.inboxName = 'nil';
         }
         this.inboxId = broadcaster.hookup(this.inboxName, this.inbox.bind(this));

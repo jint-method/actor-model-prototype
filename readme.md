@@ -35,9 +35,9 @@ Anything can send a message through the Broadcaster:
 broadcaster.message('recipient-inbox-name', { type: 'message-type' });
 ```
 
-The message method requires a recipient's name along with a `MessageData` object that contains a `type` string. Additional values can be sent within the `MessageData` object as long as they're a [transferable](https://www.w3.org/TR/html50/infrastructure.html#transferable) typed structure.
+The `broadcaster.message()` method requires a recipient name along with a `MessageData` object that contains a message type. Additional values can be sent within the `MessageData` object as long as they're a [transferable](https://www.w3.org/TR/html50/infrastructure.html#transferable) structure.
 
-Inbox names are **NOT** unique and several scripts can register under the same inbox name. When a message is sent to a recipient all inboxes labeled as that recipient will receive the message.
+Inboxes **DO NOT** have unique name. Several inboxes can be registered under the same name. When a message is sent to an inbox `foo` all inboxes labeled as `foo` will receive the message.
 
 Scripts can register several inboxes. All inboxes can point to one inbox callback function:
 
@@ -84,7 +84,7 @@ The maximum number of attempts before a `TCP` message is dropped defaults to `10
 broadcaster.message('foo', { type: 'test' }, 'TCP', 200);
 ```
 
-If a message should never stop attempting to find a recipient and `Infinity` value can be used instead of an integer.
+If a message should never be dropped the `Infinity` value can be used instead of an integer.
 
 On low-end devices (<= 4gb RAM) disconnected inboxes are removed every minute.
 

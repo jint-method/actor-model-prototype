@@ -92,6 +92,18 @@ class BroadcastHelper {
                 });
             }, 60000);
         }
+        else {
+            /** Tells broadcaster to cleanup disconnected inboxes every 5 minutes */
+            setInterval(() => {
+                // @ts-ignore
+                self.postMessage({
+                    recipient: 'broadcaster',
+                    data: {
+                        type: 'cleanup',
+                    }
+                });
+            }, 300000);
+        }
         if (isSafari) {
             /** Pings broadcaster every 3 seconds on Safari due to iOS auto-terminating active workers */
             setInterval(() => {

@@ -4,7 +4,7 @@ The purpose of this prototype is to explore the idea of using the [Actor Model](
 
 This is **NOT** a library. The source code available within the repo is **UNTESTED** and **IS NOT** recommended for production use without proper testing. This is a proof of concept. Checkout the live demo at [https://messaging.jintmethod.dev](https://messaging.jintmethod.dev/)
 
-#### References
+### References:
 
 - [The Actor Model](https://youtu.be/un-pSOlTaY0): brief introduction video explaining the Actor Model
 - [An Actor, a model and an architect walk onto the web...](https://dassur.ma/things/actormodel/): introduction to the idea of using the Actor Model on the web
@@ -85,3 +85,7 @@ broadcaster.message('foo', { type: 'test' }, 'TCP', 200);
 ```
 
 If a message should never stop attempting to find a recipient and `Infinity` value can be used instead of an integer.
+
+On low-end devices (<= 4gb RAM) disconnected inboxes are removed every minute.
+
+On all other devices disconnected inboxes are removed every 5 minutes.

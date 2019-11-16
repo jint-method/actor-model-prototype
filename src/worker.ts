@@ -117,6 +117,19 @@ class BroadcastHelper
                 });
             }, 60_000);
         }
+        else
+        {
+            /** Tells broadcaster to cleanup disconnected inboxes every 5 minutes */
+            setInterval(() => {
+                // @ts-ignore
+                self.postMessage({
+                    recipient: 'broadcaster',
+                    data: {
+                        type: 'cleanup',
+                    }
+                });
+            }, 300_000);
+        }
 
         if (isSafari)
         {

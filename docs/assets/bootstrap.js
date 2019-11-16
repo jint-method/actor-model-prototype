@@ -1,10 +1,12 @@
 /** Imports the web component classes */
-import { ComponentOne } from './component-one.js';
-import { ComponentTwo } from './component-two.js';
-import { ComponentThree } from './component-three.js';
+import { GenerateButton } from './generate-button.js';
+import { ChangeColorButton } from './change-color-button.js';
+import { DeleteButton } from './delete-button.js';
+import { CleanupButton } from './cleanup-button.js';
 /** IIFE for registering the custom elements as web components */
 (() => {
-    customElements.define('component-one', ComponentOne);
-    customElements.define('component-two', ComponentTwo);
-    customElements.define('component-three', ComponentThree);
+    customElements.define('generate-button', GenerateButton);
+    customElements.define('change-color-button', ChangeColorButton);
+    customElements.define('delete-button', DeleteButton);
+    customElements.define('cleanup-button', CleanupButton);
 })();

@@ -27,18 +27,7 @@ class Broadcaster {
                 this.inboxes[inboxIndexes[i]].callback(data);
             }
             catch (error) {
-                this.inboxes[inboxIndexes[i]].callback = () => { };
-                this.inboxes[inboxIndexes[i]].disconnected = true;
-                const workerMessage = {
-                    recipient: 'broadcast-worker',
-                    messageId: null,
-                    protocol: 'UDP',
-                    data: {
-                        type: 'disconnect',
-                        inboxAddress: inboxIndexes[i],
-                    },
-                };
-                this.postMessageToWorker(workerMessage);
+                this.disconnectInbox(this.inboxes[inboxIndexes[i]], inboxIndexes[i]);
             }
         }
     }
@@ -99,7 +88,8 @@ class Broadcaster {
      */
     hookup(name, inbox) {
         const newInbox = {
-            callback: inbox
+            callback: inbox,
+            uid: this.generateUUID(),
         };
         const address = this.inboxes.length;
         this.inboxes.push(newInbox);
@@ -114,6 +104,7 @@ class Broadcaster {
             },
         };
         this.postMessageToWorker(workerMessage);
+        return newInbox.uid;
     }
     /**
      * Sends a message to the worker using `postMessage()` or queues the message if the worker isn't ready.
@@ -143,7 +134,9 @@ class Broadcaster {
                 updatedAddresses.push(addressUpdate);
             }
         }
+        console.log([...this.inboxes]);
         this.inboxes = updatedInboxes;
+        console.log([...this.inboxes]);
         const workerMessage = {
             recipient: 'broadcast-worker',
             messageId: null,
@@ -154,6 +147,33 @@ class Broadcaster {
             },
         };
         this.worker.postMessage(workerMessage);
+    }
+    /**
+     * Disconnect an inbox.
+     * @param inboxId - the unique ID of the inbox
+     */
+    disconnect(inboxId) {
+        for (let i = 0; i < this.inboxes.length; i++) {
+            const inbox = this.inboxes[i];
+            if (inbox.uid === inboxId) {
+                this.disconnectInbox(inbox, i);
+                break;
+            }
+        }
+    }
+    disconnectInbox(inbox, index) {
+        inbox.disconnected = true;
+        inbox.callback = () => { };
+        const workerMessage = {
+            recipient: 'broadcast-worker',
+            messageId: null,
+            protocol: 'UDP',
+            data: {
+                type: 'disconnect',
+                inboxAddress: index,
+            },
+        };
+        this.postMessageToWorker(workerMessage);
     }
     /**
      * Quick and dirty unique ID generation.

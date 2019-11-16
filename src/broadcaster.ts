@@ -2,7 +2,8 @@
 
 type Inbox = {
     callback: Function,
-    disconnected?: boolean
+    disconnected?: boolean,
+    uid: string,
 }
 
 class Broadcaster
@@ -51,18 +52,7 @@ class Broadcaster
             }
             catch (error)
             {
-                this.inboxes[inboxIndexes[i]].callback = ()=>{};
-                this.inboxes[inboxIndexes[i]].disconnected = true;
-                const workerMessage:BroadcastWorkerMessage = {
-                    recipient: 'broadcast-worker',
-                    messageId: null,
-                    protocol: 'UDP',
-                    data: {
-                        type: 'disconnect',
-                        inboxAddress: inboxIndexes[i],
-                    },
-                };
-                this.postMessageToWorker(workerMessage);
+                this.disconnectInbox(this.inboxes[inboxIndexes[i]], inboxIndexes[i]);
             }
         }
     }
@@ -131,10 +121,11 @@ class Broadcaster
      * @param name - the name of the inbox
      * @param inbox - the function that will handle the inboxes incoming messages
      */
-    public hookup(name:string, inbox:Function) : void
+    public hookup(name:string, inbox:Function) : string
     {
         const newInbox:Inbox = {
-            callback: inbox
+            callback: inbox,
+            uid: this.generateUUID(),
         };
         const address = this.inboxes.length;
         this.inboxes.push(newInbox);
@@ -149,6 +140,7 @@ class Broadcaster
             },
         };
         this.postMessageToWorker(workerMessage);
+        return newInbox.uid;
     }
 
     /**
@@ -196,6 +188,39 @@ class Broadcaster
             },
         };
         this.worker.postMessage(workerMessage);
+    }
+
+    /**
+     * Disconnect an inbox.
+     * @param inboxId - the unique ID of the inbox
+     */
+    public disconnect(inboxId:string) : void
+    {
+        for (let i = 0; i < this.inboxes.length; i++)
+        {
+            const inbox = this.inboxes[i];
+            if (inbox.uid === inboxId)
+            {
+                this.disconnectInbox(inbox, i);
+                break;
+            }
+        }
+    }
+
+    private disconnectInbox(inbox:Inbox, index:number) : void
+    {
+        inbox.disconnected = true;
+        inbox.callback = ()=>{};
+        const workerMessage:BroadcastWorkerMessage = {
+            recipient: 'broadcast-worker',
+            messageId: null,
+            protocol: 'UDP',
+            data: {
+                type: 'disconnect',
+                inboxAddress: index,
+            },
+        };
+        this.postMessageToWorker(workerMessage);
     }
 
     /**

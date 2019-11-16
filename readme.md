@@ -15,14 +15,18 @@ This is **NOT** a library. The source code available within the repo is **UNTEST
 
 ## Overview
 
-All scripts communicate using the `Broadcaster` class
+All scripts communicate using the `Broadcaster` class.
 
-The class is available using `import { broadcaster } from './broadcaster.js';`
+The class is available using:
+
+```typescript
+import { broadcaster } from './broadcaster.js';
+```
 
 When a script wants to receive a message it registers an inbox with the Broadcaster:
 
 ```typescript
-broadcaster.hookup('my-inbox-name', ()=>{});
+broadcaster.hookup('my-inbox-name', this.inbox.bind(this));
 ```
 
 Anything can send a message through the Broadcaster:
@@ -31,11 +35,11 @@ Anything can send a message through the Broadcaster:
 broadcaster.message('recipient-inbox-name', { type: 'message-type' });
 ```
 
-Along with the `type` additional values can be sent within the data object as long as they're [transferable](https://www.w3.org/TR/html50/infrastructure.html#transferable)
+The message method requires a recipient's name along with a `MessageData` object that contains a `type` string. Additional values can be sent within the `MessageData` object as long as they're a [transferable](https://www.w3.org/TR/html50/infrastructure.html#transferable) typed structure.
 
-Inbox names are **NOT** unique, several scripts can register an inbox such as `broadcaster.hookup('foo', ()=>{}));`. When a message is sent to the `foo` recipient all inboxes labeled as `foo` will receive the message
+Inbox names are **NOT** unique and several scripts can register under the same inbox name. When a message is sent to a recipient all inboxes labeled as that recipient will receive the message.
 
-Scripts can register several inboxes with the Broadcaster and can hook all of the inboxes up to one inbox callback function:
+Scripts can register several inboxes. All inboxes can point to one inbox callback function:
 
 ```typescript
 import { broadcaster } from './broadcaster.js';
@@ -57,27 +61,27 @@ class FooClass
 The `broadcaster.hookup()` function returns a unique ID for the registered inbox:
 
 ```typescript
-const inboxId = broadcaster.hookup('foo', ()=>{});
+const inboxId = broadcaster.hookup('foo', this.inbox.bind(this));
 ```
 
-An inbox can be disconnected from the Broadcaster using `broadcaster.disconnect(inboxUniqueId);`
+An inbox can be disconnected from the Broadcaster:
 
 ```typescript
-broadcaster.disconnect(inboxId);
+broadcaster.disconnect(inboxUniqueId);
 ```
 
-By default `broadcaster.message()` sends messages using a `UDP` style message protocol and the message will be dropped if an inbox is not found for the recipient
+By default `broadcaster.message()` sends messages using the `UDP` message protocol and the message will be dropped if an inbox is not found for the recipient.
 
-A `TCP` style message protocol is available and can be used to resend messages until a recipient inbox is found:
+A `TCP` message protocol is available. Messages will be resent until a recipient inbox is found or the maximum number of attempts has been reached:
 
 ```typescript
 broadcaster.message('foo', { type: 'test' }, 'TCP');
 ```
 
-The maximum number of attempts before a `TCP` message is dropped defaults to `100` however the value can be overridden:
+The maximum number of attempts before a `TCP` message is dropped defaults to `100` but the value can be overridden:
 
 ```typescript
 broadcaster.message('foo', { type: 'test' }, 'TCP', 200);
 ```
 
-If a message should never stop attempting to find a recipient and `Infinity` value can be used
+If a message should never stop attempting to find a recipient and `Infinity` value can be used instead of an integer.

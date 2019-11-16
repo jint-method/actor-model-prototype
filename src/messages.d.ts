@@ -26,3 +26,8 @@ interface InboxDisconnectMessage extends MessageData
 {
     inboxAddress: number,
 }
+
+interface InboxUpdateMessage extends MessageData
+{
+    addresses: Array<{ oldAddressIndex:number, newAddressIndex:number }>,
+}

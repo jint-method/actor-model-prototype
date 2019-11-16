@@ -6,14 +6,14 @@ class Broadcaster {
         this.inboxes = [];
         this.messageQueue = [];
         this.state = {
-            workerReady: false,
+            allowMessaging: false,
         };
     }
     /**
      * Set the broadcasters `workerReady` state to `true` and flush any queued messages.
      */
     flushMessageQueue() {
-        this.state.workerReady = true;
+        this.state.allowMessaging = true;
         if (this.messageQueue.length) {
             for (let i = 0; i < this.messageQueue.length; i++) {
                 this.worker.postMessage(this.messageQueue[i]);
@@ -28,6 +28,7 @@ class Broadcaster {
             }
             catch (error) {
                 this.inboxes[inboxIndexes[i]].callback = () => { };
+                this.inboxes[inboxIndexes[i]].disconnected = true;
                 const workerMessage = {
                     recipient: 'broadcast-worker',
                     messageId: null,
@@ -63,6 +64,9 @@ class Broadcaster {
         switch (type) {
             case 'ready':
                 this.flushMessageQueue();
+                break;
+            case 'cleanup':
+                this.cleanup();
                 break;
             default:
                 console.warn(`Unknown broadcaster message type: ${data.type}`);
@@ -116,12 +120,40 @@ class Broadcaster {
      * @param message - the `BroadcastWorkerMessage` object that will be sent
      */
     postMessageToWorker(message) {
-        if (this.state.workerReady) {
+        if (this.state.allowMessaging) {
             this.worker.postMessage(message);
         }
         else {
             this.messageQueue.push(message);
         }
+    }
+    cleanup() {
+        var _a;
+        this.state.allowMessaging = false;
+        const updatedAddresses = [];
+        const updatedInboxes = [];
+        for (let i = 0; i < this.inboxes.length; i++) {
+            const inbox = this.inboxes[i];
+            if (!((_a = inbox) === null || _a === void 0 ? void 0 : _a.disconnected)) {
+                const addressUpdate = {
+                    oldAddressIndex: i,
+                    newAddressIndex: updatedInboxes.length
+                };
+                updatedInboxes.push(inbox);
+                updatedAddresses.push(addressUpdate);
+            }
+        }
+        this.inboxes = updatedInboxes;
+        const workerMessage = {
+            recipient: 'broadcast-worker',
+            messageId: null,
+            protocol: 'UDP',
+            data: {
+                type: 'update-addresses',
+                addresses: updatedAddresses,
+            },
+        };
+        this.worker.postMessage(workerMessage);
     }
     /**
      * Quick and dirty unique ID generation.

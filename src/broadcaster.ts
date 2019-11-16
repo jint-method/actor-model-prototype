@@ -2,6 +2,7 @@
 
 type Inbox = {
     callback: Function,
+    disconnected?: boolean
 }
 
 class Broadcaster
@@ -10,7 +11,7 @@ class Broadcaster
     private inboxes : Array<Inbox>;
     private messageQueue : Array<BroadcastWorkerMessage>;
     private state : {
-        workerReady: boolean,
+        allowMessaging: boolean,
     };
 
     constructor()
@@ -20,7 +21,7 @@ class Broadcaster
         this.inboxes = [];
         this.messageQueue = [];
         this.state = {
-            workerReady: false,
+            allowMessaging: false,
         };
     }
 
@@ -29,7 +30,7 @@ class Broadcaster
      */
     private flushMessageQueue() : void
     {
-        this.state.workerReady = true;
+        this.state.allowMessaging = true;
         if (this.messageQueue.length)
         {
             for (let i = 0; i < this.messageQueue.length; i++)
@@ -51,6 +52,7 @@ class Broadcaster
             catch (error)
             {
                 this.inboxes[inboxIndexes[i]].callback = ()=>{};
+                this.inboxes[inboxIndexes[i]].disconnected = true;
                 const workerMessage:BroadcastWorkerMessage = {
                     recipient: 'broadcast-worker',
                     messageId: null,
@@ -92,6 +94,9 @@ class Broadcaster
         {
             case 'ready':
                 this.flushMessageQueue();
+                break;
+            case 'cleanup':
+                this.cleanup();
                 break;
             default:
                 console.warn(`Unknown broadcaster message type: ${ data.type }`);
@@ -152,7 +157,7 @@ class Broadcaster
      */
     private postMessageToWorker(message:BroadcastWorkerMessage) : void
     {
-        if (this.state.workerReady)
+        if (this.state.allowMessaging)
         {
             this.worker.postMessage(message);
         }
@@ -160,6 +165,37 @@ class Broadcaster
         {
             this.messageQueue.push(message);
         }
+    }
+
+    private cleanup() : void
+    {
+        this.state.allowMessaging = false;
+        const updatedAddresses = [];
+        const updatedInboxes = [];
+        for (let i = 0; i < this.inboxes.length; i++)
+        {
+            const inbox = this.inboxes[i];
+            if (!inbox?.disconnected)
+            {
+                const addressUpdate = {
+                    oldAddressIndex: i,
+                    newAddressIndex: updatedInboxes.length
+                };
+                updatedInboxes.push(inbox);
+                updatedAddresses.push(addressUpdate);
+            }
+        }
+        this.inboxes = updatedInboxes;
+        const workerMessage:BroadcastWorkerMessage = {
+            recipient: 'broadcast-worker',
+            messageId: null,
+            protocol: 'UDP',
+            data: {
+                type: 'update-addresses',
+                addresses: updatedAddresses,
+            },
+        };
+        this.worker.postMessage(workerMessage);
     }
 
     /**

@@ -37,6 +37,24 @@ class BroadcastHelper {
             }
         }
     }
+    updateAddressIndexes(data) {
+        const { addresses } = data;
+        for (let i = 0; i < addresses.length; i++) {
+            for (let k = 0; k < this.inboxes.length; k++) {
+                if (addresses[i].oldAddressIndex === this.inboxes[i].address) {
+                    this.inboxes[i].address = addresses[i].newAddressIndex;
+                    break;
+                }
+            }
+        }
+        // @ts-ignore
+        self.postMessage({
+            recipient: 'broadcaster',
+            data: {
+                type: 'ready',
+            }
+        });
+    }
     /**
      * The personal inbox of the `broadcast-worker` inbox.
      * @param data - the incoming `BroadcastWorkerMessage` data object
@@ -48,6 +66,9 @@ class BroadcastHelper {
                 break;
             case 'disconnect':
                 this.removeInbox(data);
+                break;
+            case 'update-addresses':
+                this.updateAddressIndexes(data);
                 break;
             default:
                 console.warn(`Unknown broadcast-worker message type: ${data.type}`);

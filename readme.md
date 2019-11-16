@@ -1,8 +1,8 @@
 # Actor Model Prototype
 
-The purpose of this prototype is to explore the idea of using the [Actor Model](https://en.wikipedia.org/wiki/Actor_model) on the web. I was introduced to this idea by [Surma](https://twitter.com/dassurma) and [Paul Lewis](https://twitter.com/aerotwist) from their talks at Chrome Dev Summit 2017 - 2019 along with their articles on [https://dassur.ma](https://dassur.ma)
+The purpose of this prototype is to explore the idea of using a modified version of the [Actor Model](https://en.wikipedia.org/wiki/Actor_model) messaging system for the web. This prototype was inspired by the prototypes created by [Surma](https://twitter.com/dassurma) and [Paul Lewis](https://twitter.com/aerotwist) for their presentations at Chrome Dev Summit 2018 & 2019.
 
-This is **NOT** a library. The source code available within the repo is **UNTESTED** and **IS NOT** recommended for production use without proper testing. This is a proof of concept. Checkout the live demo at [https://messaging.jintmethod.dev](https://messaging.jintmethod.dev/)
+This is **NOT** a library. The source code available within the repo is **UNTESTED** and **IS NOT** recommended for production use without proper testing. This is a proof of concept. Checkout the live demo at [https://messaging.jintmethod.dev](https://messaging.jintmethod.dev/).
 
 ### References:
 

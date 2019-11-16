@@ -1,4 +1,4 @@
-import { broadcaster } from "./broadcaster.js";
+import { message } from './broadcaster.js';
 export class ChangeColorButton extends HTMLElement {
     constructor() {
         super(...arguments);
@@ -9,7 +9,7 @@ export class ChangeColorButton extends HTMLElement {
             type: 'update-color',
             color: this.getRandomColor(),
         };
-        broadcaster.message('square-component', data);
+        message('square-component', data);
     }
     getRandomColor() {
         const letters = '0123456789ABCDEF';

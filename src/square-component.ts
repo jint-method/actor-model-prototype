@@ -1,8 +1,11 @@
-import { broadcaster } from "./broadcaster.js";
+import { Actor } from './actor.js';
 
-export class SquareComponent extends HTMLElement
+export class SquareComponent extends Actor
 {
-    private inboxId : string;
+    constructor()
+    {
+        super('square-component');
+    }
 
     public inbox(data:MessageData) : void
     {
@@ -11,15 +14,5 @@ export class SquareComponent extends HTMLElement
         {
             this.style.backgroundColor = data.color;
         }
-    }
-
-    connectedCallback()
-    {
-        this.inboxId = broadcaster.hookup('square-component', this.inbox.bind(this));
-    }
-
-    disconnectedCallback()
-    {
-        broadcaster.disconnect(this.inboxId);
     }
 }

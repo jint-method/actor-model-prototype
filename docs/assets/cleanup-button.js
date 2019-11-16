@@ -1,4 +1,4 @@
-import { broadcaster } from "./broadcaster.js";
+import { message } from './broadcaster.js';
 export class CleanupButton extends HTMLElement {
     constructor() {
         super(...arguments);
@@ -6,7 +6,7 @@ export class CleanupButton extends HTMLElement {
             const data = {
                 type: 'cleanup',
             };
-            broadcaster.message('broadcaster', data);
+            message('broadcaster', data);
         };
     }
     connectedCallback() {

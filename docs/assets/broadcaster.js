@@ -134,9 +134,7 @@ class Broadcaster {
                 updatedAddresses.push(addressUpdate);
             }
         }
-        console.log([...this.inboxes]);
         this.inboxes = updatedInboxes;
-        console.log([...this.inboxes]);
         const workerMessage = {
             recipient: 'broadcast-worker',
             messageId: null,
@@ -187,4 +185,7 @@ class Broadcaster {
             .join("-");
     }
 }
-export const broadcaster = new Broadcaster();
+const broadcaster = new Broadcaster();
+export const hookup = broadcaster.hookup.bind(broadcaster);
+export const disconnect = broadcaster.disconnect.bind(broadcaster);
+export const message = broadcaster.message.bind(broadcaster);

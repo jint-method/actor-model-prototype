@@ -237,4 +237,7 @@ class Broadcaster
     }
 }
 
-export const broadcaster:Broadcaster = new Broadcaster();
+const broadcaster:Broadcaster = new Broadcaster();
+export const hookup = broadcaster.hookup.bind(broadcaster);
+export const disconnect = broadcaster.disconnect.bind(broadcaster);
+export const message = broadcaster.message.bind(broadcaster);
